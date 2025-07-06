@@ -1,9 +1,38 @@
 services:
-  postgres:
-    image: 'postgres:latest'
+  app:
+    image: 'mqmanager:latest'
+    build:
+      context: .
+    container_name: app
+    depends_on:
+      - postgres_database
     environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres_database:5432/mydatabase
+      - SPRING_DATASOURCE_USERNAME=myuser
+      - SPRING_DATASOURCE_PASSWORD=secret
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+  postgres_database:
+    container_name: postgres_database
+    image: postgres:latest
+    environment:
+      - POSTGRES_DB=mydatabase
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_USER=myuser
     ports:
-      - '5432'
+      - 5432:5432
+    volumes:
+      - postgres_database:/var/lib/postgresql/data
+      - ./config/init.sql:/docker-entrypoint-initdb.d/init.sql
+  activemq:
+    container_name: activemq
+    image: apache/activemq-artemis:latest-alpine
+    ports:
+      - 8161:8161
+      - 61616:61616
+    environment:
+      ARTEMIS_USER: artemis
+      ARTEMIS_PASSWORD: artemis
+      ANONYMOUS_LOGIN: true
+volumes:
+  postgres_database:
+    driver: local
